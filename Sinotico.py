@@ -10,8 +10,43 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver import ActionChains
 import pyautogui
 import time
+import sqlite3
 
 mensagem = ""
+
+def criar_db():
+    conn = sqlite3.connect('Sinotico.db')
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY,
+            login TEXT,
+            senha BLOB
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+def salvar_credenciais(login, senha):
+    conn = sqlite3.connect('Sinotico.db')
+    c = conn.cursor()
+    c.execute('DELETE FROM users')
+    c.execute('INSERT INTO users (login, senha) VALUES (?, ?)', (login, senha))
+    conn.commit()
+    conn.close()
+
+def ler_credenciais():
+    conn = sqlite3.connect('Sinotico.db')
+    c = conn.cursor()
+    c.execute('SELECT login, senha FROM users')
+    resultado = c.fetchone()
+    conn.close()
+    if resultado:
+        return resultado
+    else:
+        return "", ""
+    
+criar_db()
 
 #Funcao para limpar os campos
 def limpar_campos():
@@ -41,6 +76,9 @@ def iniciar_programa():
     #Variaveis que vieram do input da interface grafica
     login = str(input_login_entry.get())
     senha = str(input_senha_entry.get())
+
+    if salvar_var.get():
+        salvar_credenciais(login, senha)
 
     mensagem = 'Iniciando programa.'
 
@@ -362,10 +400,12 @@ interface.geometry("500x450")
 interface.minsize(500, 450)
 interface.maxsize(500, 450)
 
+salvar_var = ctk.BooleanVar()
+
 def iniciar_programa_enter(event):
     iniciar_programa()
 
-interface.title('Sinótico 2.2.1')
+interface.title('Sinótico 2.3.0')
 
 tema_app = ctk.CTkComboBox(interface, values=["System", "Light", "Dark"], command=mostrar_tema_branco_preto, state="readonly", width=80, height=20)
 tema_app.place(relx=0.91, rely=0.01, anchor="n")
@@ -379,7 +419,7 @@ tema_app_text.place(relx=0.782, rely=0.003, anchor="n")
 primeiro_texto = ctk.CTkLabel(interface, text='Sinótico', font=("Arial", 25))
 primeiro_texto.place(relx=0.5, rely=0.1, anchor="center")
 
-segundo_texto = ctk.CTkLabel(interface, text='2.2.1')
+segundo_texto = ctk.CTkLabel(interface, text='2.3.0')
 segundo_texto.place(relx=0.5, rely=0.16, anchor="center")
 
 terceiro_texto = ctk.CTkLabel(interface, text='Atalhos:', font=("Arial", 20))
@@ -397,15 +437,22 @@ input_senha_entry.place(relx=0.5, rely=0.35, anchor="center")
 mostrar_ocultar_senha_combobox = ctk.CTkCheckBox(interface, text='Mostrar', command=mostrar_ocultar_senha, checkbox_height=20, checkbox_width=20, border_width=1)
 mostrar_ocultar_senha_combobox.place(relx=0.76, rely=0.35, anchor="center")
 
+checkbox_salvar = ctk.CTkCheckBox(interface, text="Salvar login e senha", variable=salvar_var, checkbox_height=20, checkbox_width=20, border_width=1)
+checkbox_salvar.place(relx=0.5, rely=0.523, anchor="center")
+
 botao_iniciar = ctk.CTkButton(interface, text='Iniciar', command=iniciar_programa)
 botao_iniciar.place(relx=0.5, rely=0.45, anchor="center")
 
-caixa_log = ctk.CTkTextbox(interface, width=400, height=220, wrap="word")
-caixa_log.place(relx=0.5, rely=0.742, anchor="center")
+caixa_log = ctk.CTkTextbox(interface, width=400, height=195, wrap="word")
+caixa_log.place(relx=0.5, rely=0.778, anchor="center")
 
 caixa_log.configure(state="disabled")
 
 input_login_entry.bind('<Return>', iniciar_programa_enter)
 input_senha_entry.bind('<Return>', iniciar_programa_enter)
+
+login_salvo, senha_salva = ler_credenciais()
+input_login_entry.insert(0, login_salvo)
+input_senha_entry.insert(0, senha_salva)
 
 interface.mainloop()
